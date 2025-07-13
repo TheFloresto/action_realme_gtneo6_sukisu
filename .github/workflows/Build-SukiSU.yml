@@ -49,30 +49,30 @@ jobs:
 
       - name: Configure Git
         run: |
-         git config --global user.name "MisterZtr"
-         git config --global user.email "andey2004586@gmail.com"
+          git config --global user.name "MisterZtr"
+          git config --global user.email "andey2004586@gmail.com"
 
       - name: Install dependencies
         run: |
-         sudo apt update && sudo apt upgrade -y
-         sudo apt install -y python3 git curl
+          sudo apt update && sudo apt upgrade -y
+          sudo apt install -y python3 git curl
 
       - name: Install repo tool
         run: |
-         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
-         chmod a+x ~/repo
-         sudo mv ~/repo /usr/local/bin/repo
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
+          chmod a+x ~/repo
+          sudo mv ~/repo /usr/local/bin/repo
 
       - name: Initialize repo and sync
         run: |
-         mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/realme-pineapple-devs/kernel_manifest.git -b refs/heads/realme/${{ env.CPU }} -m ${{ env.FEIL }}.xml --depth=1
-         repo sync
-         rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-         rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
-         sed -i 's/ -dirty//g' kernel_platform/common/scripts/setlocalversion
-         sed -i 's/ -dirty//g' kernel_platform/msm-kernel/scripts/setlocalversion
-         sed -i 's/ -dirty//g' kernel_platform/external/dtc/scripts/setlocalversion
+          mkdir kernel_workspace && cd kernel_workspace
+          repo init -u https://github.com/realme-pineapple-devs/kernel_manifest.git -b refs/heads/realme/${{ env.CPU }} -m ${{ env.FEIL }}.xml --depth=1
+          repo sync
+          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
+          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+          sed -i 's/ -dirty//g' kernel_platform/common/scripts/setlocalversion
+          sed -i 's/ -dirty//g' kernel_platform/msm-kernel/scripts/setlocalversion
+          sed -i 's/ -dirty//g' kernel_platform/external/dtc/scripts/setlocalversion
       
       - name: SukiSU-Ultra & SukiSU version
         if: ${{ env.KERNELSU_VARIANT == 'SukiSU-Ultra' || env.KERNELSU_VARIANT == 'SukiSU' }}
@@ -159,15 +159,15 @@ jobs:
           echo "CONFIG_KSU=y" | tee -a ./common/arch/arm64/configs/gki_defconfig
 
           if [[ "${{ env.KERNELSU_VARIANT }}" == "SukiSU-Ultra" ]]; then
-          echo "CONFIG_KPM=y" | tee -a ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KPM=y" | tee -a ./common/arch/arm64/configs/gki_defconfig
           fi
 
           # Add VFS configuration settings
           if [[ "${{ env.VFS_patch_ENABLED }}" == 'enable' ]]; then
-          echo "CONFIG_KSU_SUSFS_SUS_SU=n" | tee -a ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_MANUAL_HOOK=y" | tee -a ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KSU_SUSFS_SUS_SU=n" | tee -a ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KSU_MANUAL_HOOK=y" | tee -a ./common/arch/arm64/configs/gki_defconfig
           else
-            echo "CONFIG_KSU_SUSFS_SUS_SU=y" >| tee -a ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KSU_SUSFS_SUS_SU=y" | tee -a ./common/arch/arm64/configs/gki_defconfig
           fi
           
           # Add SUSFS configuration settings
@@ -187,30 +187,29 @@ jobs:
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" | tee -a ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" | tee -a ./common/arch/arm64/configs/gki_defconfig
 
-          
           # Remove check_defconfig
           sed -i 's/check_defconfig//' ./common/build.config.gki
 
       - name: Add make name
         run: |
-         cd kernel_workspace/kernel_platform
-           if [[ "${{ env.KERNEL_VERSION }}" == "6.1" || "${{ env.KERNEL_VERSION }}" == "6.6" ]]; then
+          cd kernel_workspace/kernel_platform
+          if [[ "${{ env.KERNEL_VERSION }}" == "6.1" || "${{ env.KERNEL_VERSION }}" == "6.6" ]]; then
+            # Get current date in the required format
+            CURRENT_DATE=$(date -u +"%a %b %d %H:%M:%S UTC %Y")
 
-          # Get current date in the required format
-          CURRENT_DATE=$(date -u +"%a %b %d %H:%M:%S UTC %Y")
-
-          # modify UTS_VERSION with dynamic date
-          perl -pi -e "s{UTS_VERSION=\"\\\$\\(echo \\\$UTS_VERSION \\\$CONFIG_FLAGS \\\$TIMESTAMP \\| cut -b -\\\$UTS_LEN\\)\"}{UTS_VERSION=\"#1 SMP PREEMPT $CURRENT_DATE\"}" ./common/scripts/mkcompile_h
-          
-          sed -i '$s|echo "\$res"|echo "\$res-@NoFloresto+@mr_vokintos"|' ./common/scripts/setlocalversion
-          if [ -f "build/build.sh" ]; then
-           sed -i 's/-dirty//' ./common/scripts/setlocalversion
-          else
-           sed -i "s/build-timestamp = \$(or \$(KBUILD_BUILD_TIMESTAMP), \$(build-timestamp-auto))/build-timestamp = \"$CURRENT_DATE\"/" ./common/init/Makefile
-           sed -i '/^[[:space:]]*"protected_exports_list"[[:space:]]*:[[:space:]]*"android\/abi_gki_protected_exports_aarch64",$/d' ./common/BUILD.bazel
-           rm -rf ./common/android/abi_gki_protected_exports_*
-           sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl
-           sed -E -i "/^CONFIG_LOCALVERSION=/ s/(.*)\"/\\1-@NoFloresto+@mr_vokintos\"/" ./common/arch/arm64/configs/gki_defconfig
+            # modify UTS_VERSION with dynamic date
+            perl -pi -e "s{UTS_VERSION=\"\\\$\\(echo \\\$UTS_VERSION \\\$CONFIG_FLAGS \\\$TIMESTAMP \\| cut -b -\\\$UTS_LEN\\)\"}{UTS_VERSION=\"#1 SMP PREEMPT $CURRENT_DATE\"}" ./common/scripts/mkcompile_h
+            
+            sed -i '$s|echo "\$res"|echo "\$res-@NoFloresto+@mr_vokintos"|' ./common/scripts/setlocalversion
+            if [ -f "build/build.sh" ]; then
+              sed -i 's/-dirty//' ./common/scripts/setlocalversion
+            else
+              sed -i "s/build-timestamp = \$(or \$(KBUILD_BUILD_TIMESTAMP), \$(build-timestamp-auto))/build-timestamp = \"$CURRENT_DATE\"/" ./common/init/Makefile
+              sed -i '/^[[:space:]]*"protected_exports_list"[[:space:]]*:[[:space:]]*"android\/abi_gki_protected_exports_aarch64",$/d' ./common/BUILD.bazel
+              rm -rf ./common/android/abi_gki_protected_exports_*
+              sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl
+              sed -E -i "/^CONFIG_LOCALVERSION=/ s/(.*)\"/\\1-@NoFloresto+@mr_vokintos\"/" ./common/arch/arm64/configs/gki_defconfig
+            fi
           fi
   
       - name: Build kernel
